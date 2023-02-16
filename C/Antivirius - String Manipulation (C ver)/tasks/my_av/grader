@@ -1,0 +1,88 @@
+#!/usr/bin/python3
+# Copyright 2019 Darius Neatu (neatudarius@gmail.com)
+
+import inspect
+import pathlib
+import os
+import sys
+from sklearn.metrics import f1_score
+from shutil import copyfile
+
+current_dir = os.path.dirname(os.path.abspath(
+    inspect.getfile(inspect.currentframe())))
+root_dir = pathlib.Path(current_dir).parent.parent
+sys.path.insert(0, str(root_dir))
+
+from check_utils.grader import Grader
+
+
+class my_av(Grader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def grade_test(self):
+        if self.env_path == '00-my_av':
+            try:
+                copyfile("urls-predictions.out", self.output_path)
+            except:
+                self.exit(code=-1, err="urls-predictions.out does not exit")
+            os.system("rm -f urls-predictions.out")
+        elif self.env_path == '01-my_av':
+            try:
+                copyfile("traffic-predictions.out", self.output_path)
+            except:
+                self.exit(code=-1, err="traffic-predictions.out does not exit")
+            os.system("rm -f traffic-predictions.out")
+
+        else:
+            self.exit(code=-2, err="not a valid test")
+
+
+        _, output, ref = self.read()
+        if self.env_path == '00-my_av':
+            try:
+                output = [int(x.strip()) for x in output]
+            except:
+                output = []
+            ref = [int(x.strip()) for x in ref]
+
+            try:
+                F1 = f1_score(ref, output, average='binary')
+                points = min(max(50 * (F1 - 0.5) / (0.67 - 0.5), 0), 50)
+            except:
+                F1 = points = 0
+
+            self.add_points(points)
+
+            if not 'ONLINE_JUDGE' in os.environ:
+                self.exit(code=0, err=f"F1={F1}", out=F1)
+            else:
+                self.exit(code=0, out=F1)
+
+
+        elif self.env_path == '01-my_av':
+            try:
+                output = [int(x.strip()) for x in output]
+            except:
+                output = []
+            ref = [int(x.strip()) for x in ref]
+
+            try:
+                F1 = f1_score(ref, output, average='binary')
+                points = min(max(50 * (F1 - 0.5)/(0.68 - 0.5), 0), 50)
+            except:
+                F1 = points = 0
+
+            self.add_points(points)
+
+            if not 'ONLINE_JUDGE' in os.environ:
+                self.exit(code=0, err=f"F1={F1}", out=F1)
+            else:
+                self.exit(code=0, out=F1)
+
+
+
+
+if __name__ == '__main__':
+    assert len(sys.argv) == 6, sys.argv
+    my_av(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]).run()
