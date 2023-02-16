@@ -1,0 +1,22 @@
+--> Explicatie solutie:
+	-- Task1: Pentru a verifica daca un URL este malitios sau nu am aplicat urmatoarele eurisitici:
+		 -> Daca lungimea domeniului este mai mare decat o valoare aleasa, atunci URL-ul este malitios
+		    (din analiza fisierului am ales ca valoare 30)
+		 -> Daca raportul dintre cifre si litere din domeniul URL-ului este mai mare decat o valoare aleasa, atunci este malitios
+		    (din analiza fisierului am ales ca valoare 0.64)
+		 -> Daca URL-ul contine anumite cuvinte sau caractere considerate suspecte, atunci URL-ul este malitios
+		    (cuvintele au fost alese din analiza fiserului si au fost puse in fiserul "words")
+		 -> Daca domeniul este de forma unei adrese IP, atunci URL-ul este malitios
+		 -> Daca domeniul face parte din lista domains_database, atunci URL-ul este malitios (euristica 1 din enunt)
+		 -> Daca URL-ul prezinta la sfarsit una dintre unele extensii considerate suspecte, atunci URL-ul este malitios (contine euristica 2 din enunt)
+		    (extensiile considerate suspecte sunt .exe, .py, .sh, .js si .pdf
+	-- Task2: Pentru a verifica daca traficul este malitios am aplicat euristici diferite pentru trafic de tip cryptominer si trafic de tip bruteforce, astfel: 
+		 -> Pentru a fi de tip cryptominer, traficul trebuie sa indeplineasca simultan conditiile:
+		 	~ flow_pkts_payload.avg sa fie diferit de 0
+		 	~ bwd_iat.avg sa fie egal cu 0
+		 	~ flow_duration sa fie 0 sau sa fie intre 1.5 si 20 de secunde
+		 -> Pentru a fi de tip bruteforce, traficul trebuie sa indeplineasca simultan conditiile:
+		 	~ flow_duration sa fie intre 1.8 si 2.5 secunde
+		 	~ flow_pkts_payload.avg sa fie peste 30
+		 (toate valoriile din conditii au fost alese dupa analiza traficurilor din fisier)
+		    
