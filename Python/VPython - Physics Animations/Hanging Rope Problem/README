@@ -1,0 +1,5 @@
+The Hanging Rope Problem is a physics question that goes like this:
+Suppose that from an helicopter that goes in a straight line, a rope with unifrom mass is left hanging. What shape would the rope have?
+The written program takes both cases with/without air friction.
+In the program the rope is simulated by a big number of spheres with the same mass bond together by massless strings. 
+The animation shows that without friction, the rope is haniging in a straight line, and with friction it curves like hook towards the back of the helicopter, which matches the theoretical result.
