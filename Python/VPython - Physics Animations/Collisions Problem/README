@@ -1,0 +1,5 @@
+The animation shows two bodies with a wall behind them. 
+One of them goes with a given velocity towards the other one, forcing a series of collisions between the second body and the wall.
+The program's output is the total number of collisions between the second body and the wall.
+The surprising result is that if the first mass is 10 to the power of n (n natural number) times bigger than the second mass, then the number of collisions will be the first n digits of pi.
+Example: if the first mass is 100 times bigger, then the total number of collisions would be 31 (first 2 digits of pi).
