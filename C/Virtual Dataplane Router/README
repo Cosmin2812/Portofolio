@@ -1,0 +1,53 @@
+## Dataplane Router - Croitoriu Cosmin-Mircea
+
+--------------------------------
+
+The homework consists in implementing the dataplane component of a router.
+Our router needs to receive packets and send them further to the destination using a static route table.
+This also includes handling ARP requests and replys and ICMP errors like timeouts and unreachable hosts.
+
+--------------------------------
+
+ ### 1. Forwarding process: 
+ Consists in the way the router receives the packets and sends them. It was implemented following the next steps:   
+
+    For receiving the packet:
+    - Parse the packet to get the Ethernet and IP headers using the given structs data types.
+    - Verify that that the packet received has the right destination address (broadcast address or receiving interface's address)
+    - Verify the ether type in the Ethernet header. Throw any packet that doesn't have the ether type for IP or ARP.
+    - Verify the checksum and ttl fields in the IP header.
+    - Verify the destination IP address, because the packet can be destined for the router.
+
+    For sending the packet:   
+    -> Update the ttl by decrementing it and recompute the checksum.
+    -> Search the route table by searching for the longest prefix match and get the IPs for the next hop and exit interface of the router. (More details in the Efficient LPM section)
+    -> Get the MAC address of the destination by searching the ARP cache or by sending an ARP request. (More details in the ARP section)
+    -> Send the packet to the next hop.
+
+### 2. ICMP handling: 
+Consists of the way our router handles the packets destined for the router and the ones with the ttl field <= 1 or unreachable destination.    
+
+    - Compare the destination address in IP header with the interface's IP. If they are equal it means that the packet is destined for the router.
+    - If the ttl field <= 1, then the packet "ran out of time" and didn't find the destination.
+    - If the function that searches for the best route in the route table returns a NULL entry, that means that there is no path to the destination and the host is unreachable.
+    - For all these 3 cases, we need to send a reply to the source of the packet. Every case has a specific type and code that needs to be send in the ICMP header. The reply is just a modified version of the recevied packet, by swapping the MAC and IP addresses. In the case of the 2 errors, we also need to add the IP header and next 64 bytes of the received packet.
+
+### 3. ARP requests and replies:  
+Our router needs to be able to receive and answer to ARP requests. When the ARP cache doesn't contain the MAC address of the next hop in case of a forward, it also needs to send ARP requests to find the address.   
+
+    - In case of an ARP request, the router checks the destination IP of the destination. If the address matches the IP of the interface that received the packet, then resend the packet to the source with the MAC address of the interface. If it doesn't match our address, then simply drop the packet.
+    - In case of sending an ARP request, the received packet needs to be put in a queue to be handled for later, as the router needs to handle other packets while it waits for the ARP reply.
+    - When an ARP reply is received, go through the ARP cache to see if the address has already been found. If not, simply add the new entry.
+    - After receiving an ARP reply, go though the queue of packets and send the ones that have the MAC address found in the cache.   
+
+    (The nodes in the queue also retain the length of the buffer, the exit interface and the IP address of the next hop, as these informations are needed to further send the packet to the destination)
+
+### 4. Efficient LPM:
+The normal search for an IP address in the route table is an O(N) operation. To make this more efficient we can make a trie out of every IP address in the route table.   
+
+    - The trie is populated by going through every bit of a prefix and checking if there exists a node for the corresponding bit. If the node doesn't exist, simply create it and do the same for the next bits. At the end of a prefix, add a pointer to the route table entry corresponding that prefix in the corresponding node.
+    - When trying to find an entry for an IP, go through the trie bit by bit and retain the deepest node. AT the end of the search simply return the pointe to the route table entry. The trie makes this search a constant time one, as there is a maximum of 32 nodes that we need to go through for every IP.
+
+----- 
+All the tasks were solved.
+

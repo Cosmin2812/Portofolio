@@ -1,0 +1,63 @@
+Client - Server TCP and UDP App for message distribution
+1. Scope of the Application   
+
+C application using sockets to realize a connection between three entities:
+- Server: Mantains the connections between the connected TCP and UDP clients.
+- TCP clients: They connect to the server and send commands (coming from the user) for subscribing or unsubscribing to certain topics. After a subscription to a certain topic, the client will receive announcements about that topic from the UDP client.
+- UDP clients: They publish announcements regarding different topics.
+
+The functionality of the server is to efficiently send the UDP packets to those TCP clients that are subbed to the corresponding topic.
+The app also allows multiple subscriptions at the same time using wildcards.
+
+In the next sections, we will detail the implementation of the TCP clients and the server.
+
+2. General details
+To send the messages efficiently, I used length prefixation. That means that before sending the message itself, we first send an int that contains the length of the message we want to send. This allows us to handle really short messages, but also long messages in the most elaborate way.
+The exceptions to this rule are the UDP packages that always send a package with a constant length, corresponding to the following struct:
+
+struct udp_packet {
+  char topic[50];
+  char type;
+  char content[1500];
+};
+
+More about how the server sends the message to the TCP clients is found in the 3rd section.
+2. TCP Clients
+- After the creation of the socket and connection to the server, the client immediately sends his ID, so the server knows to match it with the socket from which he received the message (client_info struct). 
+- After this, an epoll is created containing two sockets: one corresponding to the server communication and one bound to stdin. The client can only receive 3 kinds of messages: "subscribe <topic>", "unsubscribe <topic>" and "exit", otherwise the message won't be sent, and an error will be printed in stderr. The messages from the servers are received, as already said by using length prefixation. 
+- The message from the server needs to contain UDP client's IP and port, the topic of the message, the type, and the content. This means that the message needs to contain an int array with the 5 lengths of the information needed. 
+- At the end, if "exit" is received or the server closes the connection (the number of bytes read from the socket bound to the server is 0), the socket closes.
+
+3. Server
+The server opens at first a poll containing three sockets set on listening, one for UDP clients, one for TCP clients, and one for stdin.
+When it receives a connection request from the TCP listen socket, he accepts the connection and returns a new socket, that he adds to the poll. He then adds the new fd to the array of struct containing the new client's information.
+
+struct client_info {
+  int socketFD;
+  char* ID;
+  char* IP;
+  int port;
+  int got_packet;
+};
+
+Note that at first, the ID is set to 0, as he later will receive a packet containing this client's ID.    
+
+When the server receives something on one of the sockets opened for TCP clients, it follows 2 steps:
+1. Check if the client disconnected or if he received "exit" as a message. In both cases, the server closes the connection with that client, by removing the client's information from the array, and the socket from the poll.
+2. Iterate through the client info array and see if the client has the ID set or not.
+If it is set, that means that what it received is a command and execution needs to be followed. If the ID is not set, that means that the message received is the ID itself. Before adding the ID to the client information, the server checks if the client is already connected (if there is a client with the same ID in the array). If there is, the server closes the connection with that socket. Otherwise, the ID is set in the client information with the fd respective to the socket from which he received the message.    
+
+Next, there are the messages received from the UDP clients. In this case, the server sends the message forward to the TCP clients subscribed to the topic of the message. In the memory, each topic is saved with all the subscribers ID (using an array of structs). 
+
+struct topic_entry {
+  char topic[50];
+  char** subscribed_clients;
+  int nr_subscribers;
+};
+
+To send the message forward, there is a simple iteration through the array of topics and check for a match (not only by using strcmp, because there can be topics saved with wildcards). After a match has been found, the message is sent to all the eligibile clients in the subscribed clients array (the eligible clients are the ones with got_packet set to 0). 
+When a client subscribes to a certain topic, he is added to the subscribed_clients array for that specific topic. Similarly, if he unsubscribes to that topic, he is removed from the array.
+
+MENTIONS
+- The backbone of the code, when it comes to socket creation and functions of sending and receiving, consists of the 7th laboratory.
+- The matching of the topics is done by iterating through every word in the topic string and see if it corresponds with the wildcard conditions.
